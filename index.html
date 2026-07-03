@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#2D6B3E" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="12WY Coach" />
+  <link rel="apple-touch-icon" href="MFSlogo2025.png" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="style.css" />
+  <title>12 Week Year — Melton Financial Solutions</title>
+</head>
+<body>
+
+<header class="app-header">
+  <img src="MFSlogo2025.png" alt="Melton Financial Solutions" />
+  <h1>12 Week Year<br><span style="font-weight:400;color:var(--text-muted);">Daily Coach</span></h1>
+  <span class="week-badge-slot"></span>
+</header>
+
+<main id="main"></main>
+
+<nav class="bottom-nav">
+  <button class="nav-btn active" data-view="today" onclick="navigate('today')">
+    <span class="icon">☀️</span>Today
+  </button>
+  <button class="nav-btn" data-view="monday" onclick="navigate('monday')">
+    <span class="icon">📱</span>Mon Pulse
+  </button>
+  <button class="nav-btn" data-view="wam" onclick="navigate('wam')">
+    <span class="icon">📋</span>Fri WAM
+  </button>
+  <button class="nav-btn" data-view="scorecard" onclick="navigate('scorecard')">
+    <span class="icon">📊</span>Scorecard
+  </button>
+  <button class="nav-btn" data-view="history" onclick="navigate('history')">
+    <span class="icon">📖</span>History
+  </button>
+</nav>
+
+<script src="app.js"></script>
+</body>
+</html>
