@@ -1,3 +1,55 @@
+// ─── Supabase sync ───────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://vydpiywmqbevjuyrqcyj.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_lmNgfdlgU8ZXHBxzhyBOhw_5Mw7i7TM';
+const ROW_ID = 'sara';
+let _sb = null;
+let _syncTimer = null;
+
+function getSB() {
+  if (!_sb && window.supabase) _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  return _sb;
+}
+
+async function loadFromSupabase() {
+  const sb = getSB();
+  if (!sb) return;
+  try {
+    const { data } = await sb.from('app_data').select('data').eq('id', ROW_ID).single();
+    if (data && data.data) {
+      // Merge: Supabase wins on conflict (it's the shared source of truth)
+      const local = db();
+      const merged = deepMerge(data.data, local);
+      localStorage.setItem(DB_KEY, JSON.stringify(merged));
+      await pushToSupabase(merged);
+    }
+  } catch(e) { /* offline — use localStorage */ }
+}
+
+async function pushToSupabase(payload) {
+  const sb = getSB();
+  if (!sb) return;
+  try {
+    await sb.from('app_data').upsert({ id: ROW_ID, data: payload, updated_at: new Date().toISOString() });
+  } catch(e) { /* will retry on next save */ }
+}
+
+function scheduleSyncToSupabase() {
+  clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(() => pushToSupabase(db()), 1500);
+}
+
+function deepMerge(base, overlay) {
+  const result = { ...base };
+  for (const key of Object.keys(overlay)) {
+    if (overlay[key] && typeof overlay[key] === 'object' && !Array.isArray(overlay[key]) && base[key]) {
+      result[key] = deepMerge(base[key], overlay[key]);
+    } else if (overlay[key] !== undefined && overlay[key] !== null && overlay[key] !== '') {
+      result[key] = overlay[key];
+    }
+  }
+  return result;
+}
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 const SEASON_START = new Date('2026-07-06T00:00:00');
 const SEASON_END   = new Date('2026-09-27T23:59:59');
@@ -63,6 +115,7 @@ function db() {
 
 function save(data) {
   localStorage.setItem(DB_KEY, JSON.stringify(data));
+  scheduleSyncToSupabase();
 }
 
 function getDailyLog(dateStr) {
@@ -712,6 +765,9 @@ function init() {
 
   renderHeader();
   renderMain();
+
+  // Load latest data from Supabase then re-render
+  loadFromSupabase().then(() => { renderHeader(); renderMain(); });
 
   // Auto-show WAM on Friday, Monday pulse on Monday
   if (isFriday() && currentWeekNum() > 0) navigate('wam');
