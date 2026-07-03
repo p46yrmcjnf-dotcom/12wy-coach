@@ -1,4 +1,4 @@
-const CACHE = 'mfs-12wy-v1';
+const CACHE = 'mfs-12wy-v2';
 const ASSETS = ['./', './index.html', './style.css', './app.js', './MFSlogo2025.png'];
 
 self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS))));
