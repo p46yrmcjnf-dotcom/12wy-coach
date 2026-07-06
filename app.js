@@ -15,7 +15,7 @@ async function loadFromSupabase() {
   if (!sb) return;
   try {
     const { data } = await sb.from('app_data').select('data').eq('id', ROW_ID).maybeSingle();
-    if (data && data.data && Object.keys(data.data).length > 1) {
+    if (data && data.data && (data.data.dailyLogs || data.data.wam || data.data.mondayPulse)) {
       // Supabase is the source of truth — overwrite local completely
       localStorage.setItem(DB_KEY, JSON.stringify(data.data));
     }
