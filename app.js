@@ -1,6 +1,6 @@
 // ─── Supabase sync ───────────────────────────────────────────────────────────
 const SUPABASE_URL = 'https://vydpiywmqbevjuyrqcyj.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_lmNgfdlgU8ZXHBxzhyBOhw_5Mw7i7TM';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5ZHBpeXdtcWJldmp1eXJxY3lqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwODk5MDksImV4cCI6MjA5ODY2NTkwOX0.j0ZgMn0dyUKsMEeb0m0Nuu9dOPOrC01Ky8OXdVEIQj4';
 const ROW_ID = 'sara';
 let _sb = null;
 let _syncTimer = null;
