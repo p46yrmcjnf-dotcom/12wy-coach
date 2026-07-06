@@ -2,7 +2,7 @@
   "name": "12 Week Year — Melton Financial Solutions",
   "short_name": "12WY Coach",
   "description": "Daily accountability coach for Sara's 12 Week Year",
-  "start_url": "/",
+  "start_url": "/12wy-coach/",
   "display": "standalone",
   "background_color": "#F2EDE4",
   "theme_color": "#2D6B3E",
