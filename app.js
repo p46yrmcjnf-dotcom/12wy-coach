@@ -14,13 +14,10 @@ async function loadFromSupabase() {
   const sb = getSB();
   if (!sb) return;
   try {
-    const { data } = await sb.from('app_data').select('data').eq('id', ROW_ID).single();
-    if (data && data.data) {
-      // Merge: Supabase wins on conflict (it's the shared source of truth)
-      const local = db();
-      const merged = deepMerge(data.data, local);
-      localStorage.setItem(DB_KEY, JSON.stringify(merged));
-      await pushToSupabase(merged);
+    const { data } = await sb.from('app_data').select('data').eq('id', ROW_ID).maybeSingle();
+    if (data && data.data && Object.keys(data.data).length > 1) {
+      // Supabase is the source of truth — overwrite local completely
+      localStorage.setItem(DB_KEY, JSON.stringify(data.data));
     }
   } catch(e) { /* offline — use localStorage */ }
 }
@@ -36,18 +33,6 @@ async function pushToSupabase(payload) {
 function scheduleSyncToSupabase() {
   clearTimeout(_syncTimer);
   _syncTimer = setTimeout(() => pushToSupabase(db()), 1500);
-}
-
-function deepMerge(base, overlay) {
-  const result = { ...base };
-  for (const key of Object.keys(overlay)) {
-    if (overlay[key] && typeof overlay[key] === 'object' && !Array.isArray(overlay[key]) && base[key]) {
-      result[key] = deepMerge(base[key], overlay[key]);
-    } else if (overlay[key] !== undefined && overlay[key] !== null && overlay[key] !== '') {
-      result[key] = overlay[key];
-    }
-  }
-  return result;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
