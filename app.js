@@ -769,6 +769,13 @@ function init() {
   // Load latest data from Supabase then re-render
   loadFromSupabase().then(() => { renderHeader(); renderMain(); });
 
+  // Re-sync whenever the app comes back into focus (switching tabs or returning from another app)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      loadFromSupabase().then(() => { renderHeader(); renderMain(); });
+    }
+  });
+
   // Auto-show WAM on Friday, Monday pulse on Monday
   if (isFriday() && currentWeekNum() > 0) navigate('wam');
   else if (isMonday() && currentWeekNum() > 0) navigate('monday');
