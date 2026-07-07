@@ -77,14 +77,18 @@ const DAILY_SOCIAL = {
   5: ['Instagram Story', 'Facebook Personal post', 'LinkedIn post', '15-min full week data review']
 };
 
-// Daily networking tasks by day of week
-const DAILY_NET = {
-  1: ['New networking outreach — contact 1 of 2', 'Follow-up send 1 of 2'],
-  2: ['Coffee meeting 1 of 2', 'Event invite send 1 of 2'],
-  3: ['Coffee meeting 2 of 2', 'New networking outreach — contact 2 of 2'],
-  4: ['Follow-up send 2 of 2', 'Event invite send 2 of 2'],
-  5: ['Coffee / open networking slot (11:45am–2pm)']
-};
+// Weekly networking checklist — targets are weekly, not day-specific
+// Each item can be checked off any day during the week; resets Monday
+const WEEKLY_NET = [
+  { key: 'contact1', label: 'New contact 1 of 2' },
+  { key: 'contact2', label: 'New contact 2 of 2' },
+  { key: 'followup1', label: 'Follow-up sent 1 of 2' },
+  { key: 'followup2', label: 'Follow-up sent 2 of 2' },
+  { key: 'coffee1', label: 'Coffee meeting 1 of 2' },
+  { key: 'coffee2', label: 'Coffee meeting 2 of 2' },
+  { key: 'invite1', label: 'Event invite sent 1 of 2' },
+  { key: 'invite2', label: 'Event invite sent 2 of 2' },
+];
 
 // ─── Data layer ───────────────────────────────────────────────────────────────
 const DB_KEY = 'mfs_12wy';
@@ -120,6 +124,28 @@ function saveWAM(weekNum, data) {
   if (!d.wam) d.wam = {};
   d.wam[weekNum] = { ...(d.wam[weekNum] || {}), ...data };
   save(d);
+}
+
+function weekMonday() {
+  const d = new Date();
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  return dateStr(d);
+}
+
+function getWeeklyNet() {
+  const data = db();
+  return ((data.weeklyNet || {})[weekMonday()]) || {};
+}
+
+function saveWeeklyNet(key, val) {
+  const data = db();
+  if (!data.weeklyNet) data.weeklyNet = {};
+  if (!data.weeklyNet[weekMonday()]) data.weeklyNet[weekMonday()] = {};
+  data.weeklyNet[weekMonday()][key] = val;
+  save(data);
+  rerender();
 }
 
 function getMondayPulse(dateStr) {
@@ -323,17 +349,18 @@ function renderToday() {
     </div>
   </div>`;
 
-  // Today's networking tasks
-  const netTasks = DAILY_NET[dow] || [];
-  if (netTasks.length) {
-    const netDone = log.netTasks || {};
+  // Weekly networking checklist (targets are weekly — check off any day)
+  if (dow >= 1 && dow <= 5) {
+    const weekNet = getWeeklyNet();
+    const doneCount = WEEKLY_NET.filter(n => weekNet[n.key]).length;
     html += card(
-      `<h2>🤝 Networking</h2>`,
-      netTasks.map((t, i) => `
+      `<h2>🤝 Networking — This Week</h2><span class="badge badge-${doneCount >= 6 ? 'green' : doneCount >= 3 ? 'yellow' : 'red'}" style="margin-left:auto;">${doneCount}/${WEEKLY_NET.length}</span>`,
+      WEEKLY_NET.map(n => `
         <div class="check-item" onclick="toggleCheck(this)">
-          <input type="checkbox" id="net_${i}" ${netDone[i] ? 'checked' : ''} onchange="saveNetTask(${i}, this.checked)">
-          <label for="net_${i}" class="${netDone[i] ? 'done' : ''}">${t}</label>
-        </div>`).join('')
+          <input type="checkbox" id="net_${n.key}" ${weekNet[n.key] ? 'checked' : ''} onchange="saveWeeklyNet('${n.key}', this.checked)">
+          <label for="net_${n.key}" class="${weekNet[n.key] ? 'done' : ''}">${n.label}</label>
+        </div>`).join('') +
+      `<p class="text-muted mt-8" style="font-size:12px;">Check off anytime during the week — resets Monday. Log final counts in Excel on Friday.</p>`
     );
   }
 
@@ -680,12 +707,6 @@ function saveHealth(key, val) {
   rerender();
 }
 
-function saveNetTask(idx, val) {
-  const log = getDailyLog(today());
-  const netTasks = { ...(log.netTasks || {}), [idx]: val };
-  saveDailyLog(today(), { netTasks });
-  rerender();
-}
 
 function saveSocTask(idx, val) {
   const log = getDailyLog(today());
