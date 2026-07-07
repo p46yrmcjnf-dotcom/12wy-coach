@@ -77,17 +77,12 @@ const DAILY_SOCIAL = {
   5: ['Instagram Story', 'Facebook Personal post', 'LinkedIn post', '15-min full week data review']
 };
 
-// Weekly networking checklist — targets are weekly, not day-specific
-// Each item can be checked off any day during the week; resets Monday
+// Weekly networking counters — target 2 each, can exceed for over-achievement
 const WEEKLY_NET = [
-  { key: 'contact1', label: 'New contact 1 of 2' },
-  { key: 'contact2', label: 'New contact 2 of 2' },
-  { key: 'followup1', label: 'Follow-up sent 1 of 2' },
-  { key: 'followup2', label: 'Follow-up sent 2 of 2' },
-  { key: 'coffee1', label: 'Coffee meeting 1 of 2' },
-  { key: 'coffee2', label: 'Coffee meeting 2 of 2' },
-  { key: 'invite1', label: 'Event invite sent 1 of 2' },
-  { key: 'invite2', label: 'Event invite sent 2 of 2' },
+  { key: 'contacts',  label: 'New contacts made',    target: 2 },
+  { key: 'followups', label: 'Follow-ups sent',       target: 2 },
+  { key: 'coffees',   label: 'Coffee meetings',       target: 2 },
+  { key: 'invites',   label: 'Event invites sent',    target: 2 },
 ];
 
 // ─── Data layer ───────────────────────────────────────────────────────────────
@@ -143,7 +138,7 @@ function saveWeeklyNet(key, val) {
   const data = db();
   if (!data.weeklyNet) data.weeklyNet = {};
   if (!data.weeklyNet[weekMonday()]) data.weeklyNet[weekMonday()] = {};
-  data.weeklyNet[weekMonday()][key] = val;
+  data.weeklyNet[weekMonday()][key] = Math.max(0, parseInt(val) || 0);
   save(data);
   rerender();
 }
@@ -349,18 +344,27 @@ function renderToday() {
     </div>
   </div>`;
 
-  // Weekly networking checklist (targets are weekly — check off any day)
+  // Weekly networking counters (targets are weekly — update any day, resets Monday)
   if (dow >= 1 && dow <= 5) {
     const weekNet = getWeeklyNet();
-    const doneCount = WEEKLY_NET.filter(n => weekNet[n.key]).length;
+    const execPct = Math.round(WEEKLY_NET.reduce((sum, n) => sum + Math.min((weekNet[n.key] || 0) / n.target, 1), 0) / WEEKLY_NET.length * 100);
     html += card(
-      `<h2>🤝 Networking — This Week</h2><span class="badge badge-${doneCount >= 6 ? 'green' : doneCount >= 3 ? 'yellow' : 'red'}" style="margin-left:auto;">${doneCount}/${WEEKLY_NET.length}</span>`,
-      WEEKLY_NET.map(n => `
-        <div class="check-item" onclick="toggleCheck(this)">
-          <input type="checkbox" id="net_${n.key}" ${weekNet[n.key] ? 'checked' : ''} onchange="saveWeeklyNet('${n.key}', this.checked)">
-          <label for="net_${n.key}" class="${weekNet[n.key] ? 'done' : ''}">${n.label}</label>
-        </div>`).join('') +
-      `<p class="text-muted mt-8" style="font-size:12px;">Check off anytime during the week — resets Monday. Log final counts in Excel on Friday.</p>`
+      `<h2>🤝 Networking — This Week</h2><span class="badge badge-${execPct >= 80 ? 'green' : execPct >= 50 ? 'yellow' : 'red'}" style="margin-left:auto;">${execPct}%</span>`,
+      WEEKLY_NET.map(n => {
+        const val = weekNet[n.key] || 0;
+        const over = val > n.target;
+        return `<div class="num-row">
+          <label>${n.label}</label>
+          ${over ? `<span style="font-size:11px;color:var(--green);font-weight:700;">+${val - n.target} over!</span>` : ''}
+          <span class="num-tag tag-lead">target ${n.target}</span>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <button onclick="saveWeeklyNet('${n.key}', ${val - 1})" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:white;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
+            <span style="font-size:18px;font-weight:700;min-width:20px;text-align:center;color:${val >= n.target ? 'var(--green)' : 'var(--text)'};">${val}</span>
+            <button onclick="saveWeeklyNet('${n.key}', ${val + 1})" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:white;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
+          </div>
+        </div>`;
+      }).join('') +
+      `<p class="text-muted mt-8" style="font-size:12px;">Resets Monday · Score caps at 100% per indicator · Over-achievement tracked separately · Copy finals to Excel on Friday.</p>`
     );
   }
 
