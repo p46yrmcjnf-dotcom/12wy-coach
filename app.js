@@ -1,32 +1,27 @@
-// ─── Supabase sync ───────────────────────────────────────────────────────────
-const SUPABASE_URL = 'https://vydpiywmqbevjuyrqcyj.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5ZHBpeXdtcWJldmp1eXJxY3lqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwODk5MDksImV4cCI6MjA5ODY2NTkwOX0.j0ZgMn0dyUKsMEeb0m0Nuu9dOPOrC01Ky8OXdVEIQj4';
-const ROW_ID = 'sara';
-let _sb = null;
+// ─── Supabase sync (direct REST — no CDN dependency) ─────────────────────────
+const SB_URL  = 'https://vydpiywmqbevjuyrqcyj.supabase.co/rest/v1/app_data';
+const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5ZHBpeXdtcWJldmp1eXJxY3lqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwODk5MDksImV4cCI6MjA5ODY2NTkwOX0.j0ZgMn0dyUKsMEeb0m0Nuu9dOPOrC01Ky8OXdVEIQj4';
+const SB_HEADERS = { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' };
 let _syncTimer = null;
 
-function getSB() {
-  if (!_sb && window.supabase) _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  return _sb;
-}
-
 async function loadFromSupabase() {
-  const sb = getSB();
-  if (!sb) return;
   try {
-    const { data } = await sb.from('app_data').select('data').eq('id', ROW_ID).maybeSingle();
-    if (data && data.data && (data.data.dailyLogs || data.data.wam || data.data.mondayPulse)) {
-      // Supabase is the source of truth — overwrite local completely
-      localStorage.setItem(DB_KEY, JSON.stringify(data.data));
+    const res = await fetch(`${SB_URL}?id=eq.sara&select=data`, { headers: SB_HEADERS });
+    const rows = await res.json();
+    const d = rows && rows[0] && rows[0].data;
+    if (d && (d.dailyLogs || d.wam || d.mondayPulse)) {
+      localStorage.setItem(DB_KEY, JSON.stringify(d));
     }
   } catch(e) { /* offline — use localStorage */ }
 }
 
 async function pushToSupabase(payload) {
-  const sb = getSB();
-  if (!sb) return;
   try {
-    await sb.from('app_data').upsert({ id: ROW_ID, data: payload, updated_at: new Date().toISOString() });
+    await fetch(SB_URL, {
+      method: 'POST',
+      headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify({ id: 'sara', data: payload, updated_at: new Date().toISOString() })
+    });
   } catch(e) { /* will retry on next save */ }
 }
 
