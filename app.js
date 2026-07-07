@@ -486,6 +486,7 @@ function renderWAM() {
   html += `<div class="card"><div class="card-header"><h2>📝 Weekly Reflection</h2></div><div class="card-body">`;
 
   const questions = [
+    { key: 'weekContext', label: 'Week context — what was happening in life this week?', placeholder: 'Travel, caregiving, health, family, unexpected events — anything that shaped the week. This is your memory for the week 4, 8, and 12 check-ins.' },
     { key: 'whatWorked', label: 'What worked this week?', placeholder: 'Actions, habits, or mindset shifts that drove results...' },
     { key: 'whatDidnt', label: "What didn't work / what got in the way?", placeholder: 'Be honest — this is just for you...' },
     { key: 'adjustment', label: 'One specific adjustment for next week', placeholder: 'Small and actionable — what exactly will you do differently?' }
@@ -655,6 +656,7 @@ function renderHistory() {
         ${socPct !== undefined ? `<span class="badge ${socPct>=80?'badge-green':socPct>=50?'badge-yellow':'badge-red'}">SM:${socPct}%</span>` : ''}
       </div>
       <div class="wam-detail" style="display:none;margin-top:8px;font-size:13px;line-height:1.6;">
+        ${wam.weekContext ? `<div style="background:var(--cream);border-left:3px solid var(--green);padding:8px 10px;border-radius:4px;margin-bottom:8px;"><strong>Context:</strong> ${wam.weekContext}</div>` : ''}
         ${wam.whatWorked ? `<div><strong>✓ Worked:</strong> ${wam.whatWorked}</div>` : ''}
         ${wam.whatDidnt ? `<div><strong>✗ Didn't work:</strong> ${wam.whatDidnt}</div>` : ''}
         ${wam.adjustment ? `<div><strong>→ Adjustment:</strong> ${wam.adjustment}</div>` : ''}
