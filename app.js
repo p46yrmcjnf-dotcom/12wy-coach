@@ -85,6 +85,14 @@ const WEEKLY_NET = [
   { key: 'invites',   label: 'Event invites sent',    target: 2 },
 ];
 
+// Weekly social media counters — blog excluded on non-publish weeks
+const WEEKLY_SOC = [
+  { key: 'feedPosts', label: 'Feed posts (all platforms)', target: 6 },
+  { key: 'stories',   label: 'Stories posted',             target: 3 },
+  { key: 'bridge',    label: 'Bridge post',                target: 1 },
+  { key: 'blog',      label: 'Blog post',                  target: 1, blogOnly: true },
+];
+
 // ─── Data layer ───────────────────────────────────────────────────────────────
 const DB_KEY = 'mfs_12wy';
 
@@ -141,6 +149,31 @@ function saveWeeklyNet(key, val) {
   data.weeklyNet[weekMonday()][key] = Math.max(0, parseInt(val) || 0);
   save(data);
   rerender();
+}
+
+function getWeeklySoc() {
+  const data = db();
+  return ((data.weeklySoc || {})[weekMonday()]) || {};
+}
+
+function saveWeeklySoc(key, val) {
+  const data = db();
+  if (!data.weeklySoc) data.weeklySoc = {};
+  if (!data.weeklySoc[weekMonday()]) data.weeklySoc[weekMonday()] = {};
+  data.weeklySoc[weekMonday()][key] = typeof val === 'boolean' ? val : Math.max(0, parseInt(val) || 0);
+  save(data);
+  rerender();
+}
+
+function calcSocialExec(weekNum) {
+  const mon = dateStr(weekStartDate(weekNum));
+  const data = db();
+  const soc = ((data.weeklySoc || {})[mon]) || {};
+  const isBlogWeek = !!soc.blogWeek;
+  const indicators = WEEKLY_SOC.filter(s => !s.blogOnly || isBlogWeek);
+  if (!indicators.some(s => (soc[s.key] || 0) > 0)) return null;
+  const total = indicators.reduce((sum, s) => sum + Math.min((soc[s.key] || 0) / s.target, 1), 0);
+  return Math.round((total / indicators.length) * 100);
 }
 
 function getMondayPulse(dateStr) {
@@ -368,18 +401,43 @@ function renderToday() {
     );
   }
 
-  // Today's social tasks
-  const socTasks = DAILY_SOCIAL[dow] || [];
-  if (socTasks.length) {
-    const socDone = log.socTasks || {};
-    html += card(
-      `<h2>📱 Social Media</h2>`,
-      socTasks.map((t, i) => `
-        <div class="check-item" onclick="toggleCheck(this)">
-          <input type="checkbox" id="soc_${i}" ${socDone[i] ? 'checked' : ''} onchange="saveSocTask(${i}, this.checked)">
-          <label for="soc_${i}" class="${socDone[i] ? 'done' : ''}">${t}</label>
-        </div>`).join('')
-    );
+  // Weekly social media counters
+  {
+    const weeklySoc = getWeeklySoc();
+    const isBlogWeek = !!weeklySoc.blogWeek;
+    const activeIndicators = WEEKLY_SOC.filter(s => !s.blogOnly || isBlogWeek);
+    const execPct = activeIndicators.some(s => (weeklySoc[s.key] || 0) > 0)
+      ? Math.round(activeIndicators.reduce((sum, s) => sum + Math.min((weeklySoc[s.key] || 0) / s.target, 1), 0) / activeIndicators.length * 100)
+      : null;
+
+    // Today's scheduled platforms as a reminder
+    const todayPlatforms = DAILY_SOCIAL[dow] || [];
+
+    html += `<div class="card"><div class="card-header">
+      <h2>📱 Social Media — This Week</h2>
+      ${execPct !== null ? `<span class="badge badge-${execPct >= 80 ? 'green' : execPct >= 50 ? 'yellow' : 'red'}" style="margin-left:auto;">${execPct}%</span>` : ''}
+    </div><div class="card-body">
+      <div class="section-label">Blog publish week?</div>
+      <div class="toggle-group" style="margin-bottom:10px;">
+        <button class="toggle-btn ${isBlogWeek ? 'active-yes' : ''}" onclick="saveWeeklySoc('blogWeek', true)">Yes — blog week</button>
+        <button class="toggle-btn ${!isBlogWeek ? 'active-yes' : ''}" onclick="saveWeeklySoc('blogWeek', false)">No — standard week</button>
+      </div>
+      ${WEEKLY_SOC.filter(s => !s.blogOnly || isBlogWeek).map(s => {
+        const val = weeklySoc[s.key] || 0;
+        const over = val > s.target;
+        return `<div class="num-row">
+          <label>${s.label}</label>
+          ${over ? `<span style="font-size:11px;color:var(--green);font-weight:700;">+${val - s.target}!</span>` : ''}
+          <span class="num-tag tag-lead">target ${s.target}</span>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <button onclick="saveWeeklySoc('${s.key}', ${val - 1})" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:white;font-size:16px;cursor:pointer;">−</button>
+            <span style="font-size:18px;font-weight:700;min-width:20px;text-align:center;color:${val >= s.target ? 'var(--green)' : 'var(--text)'};">${val}</span>
+            <button onclick="saveWeeklySoc('${s.key}', ${val + 1})" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:white;font-size:16px;cursor:pointer;">+</button>
+          </div>
+        </div>`;
+      }).join('')}
+      ${todayPlatforms.length ? `<div class="section-label mt-8">Today's platforms</div><p style="font-size:13px;color:var(--text-muted);">${todayPlatforms.join(' · ')}</p>` : ''}
+    </div></div>`;
   }
 
   // Sunday extras
@@ -458,6 +516,7 @@ function renderWAM() {
   const hPct = calcHealthExec(weekToReview);
   const sPct = calcSpiritualExec(weekToReview);
   const fPct = calcFamilyExec(weekToReview);
+  const smPct = calcSocialExec(weekToReview);
   const wam = getWAM(weekToReview);
 
   html += card(
@@ -480,9 +539,8 @@ function renderWAM() {
         style="width:64px;text-align:center" onchange="saveWAMField(${weekToReview},'networkingPct',parseInt(this.value)||0)">
     </div>
     <div class="exec-row">
-      <span class="exec-name">Social Media <span class="text-muted" style="font-size:11px;">(from Excel)</span></span>
-      <input type="number" min="0" max="100" value="${wam.socialPct || ''}" placeholder="%"
-        style="width:64px;text-align:center" onchange="saveWAMField(${weekToReview},'socialPct',parseInt(this.value)||0)">
+      <span class="exec-name">Social Media ${smPct !== null ? '' : '<span class="text-muted" style="font-size:11px;">(log in Today tab first)</span>'}</span>
+      <span class="exec-pct ${execClass(smPct)}">${smPct !== null ? smPct + '%' : '—'}</span>
     </div>
     <p class="text-muted mt-8" style="font-size:12px;">🟢 ≥80% · 🟡 50–79% · 🔴 &lt;50% — Copy Networking & Social % from your Excel tracker (Weekly MSP Tracker / Social Media Weekly Tracker tabs).</p>`
   );
@@ -648,7 +706,7 @@ function renderHistory() {
     const sPct = calcSpiritualExec(w);
     const fPct = calcFamilyExec(w);
     const nPct = wam.networkingPct;
-    const socPct = wam.socialPct;
+    const socPct = calcSocialExec(w);
 
     html += `<div class="history-item" onclick="this.querySelector('.wam-detail').style.display = this.querySelector('.wam-detail').style.display==='none'?'block':'none'">
       <h3>Week ${w} Review</h3>
