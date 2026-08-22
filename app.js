@@ -503,14 +503,27 @@ function renderToday() {
   return html;
 }
 
+let _wamWeekOverride = null;
+
 function renderWAM() {
   const wk = currentWeekNum();
   if (wk === 0) return `<div class="banner banner-green">Pre-season — Week 1 starts July 6. The Friday WAM will be available then.</div>`;
 
-  const displayWk = isFriday() ? wk : wk - 1;
-  const weekToReview = displayWk > 0 ? displayWk : 1;
+  const defaultWk = isFriday() ? wk : wk - 1;
+  const weekToReview = _wamWeekOverride || (defaultWk > 0 ? defaultWk : 1);
+  const maxWk = Math.min(wk, 12);
 
-  let html = `<div class="banner banner-green">📋 <strong>Week ${weekToReview} Accountability Review</strong> — Friday, 4:00–4:20pm</div>`;
+  let html = `<div class="card"><div class="card-body" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+    <span style="font-size:13px;font-weight:600;">Review week:</span>
+    ${Array.from({length: maxWk}, (_, i) => i + 1).map(w => {
+      const wam = getWAM(w);
+      const hasNotes = wam.whatWorked || wam.weekContext;
+      return `<button onclick="_wamWeekOverride=${w};renderMain()" style="padding:5px 10px;border-radius:6px;border:2px solid ${w === weekToReview ? 'var(--green)' : 'var(--border)'};background:${w === weekToReview ? 'var(--green)' : 'white'};color:${w === weekToReview ? 'white' : 'var(--text)'};font-weight:700;cursor:pointer;font-size:13px;position:relative;">
+        ${w}${hasNotes ? '<span style="position:absolute;top:-4px;right:-4px;width:8px;height:8px;background:var(--green-light);border-radius:50%;border:1px solid white;"></span>' : ''}
+      </button>`;
+    }).join('')}
+  </div></div>
+  <div class="banner banner-green">📋 <strong>Week ${weekToReview} Accountability Review</strong></div>`;
 
   // Auto-calculated execution scores
   const hPct = calcHealthExec(weekToReview);
