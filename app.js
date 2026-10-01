@@ -168,7 +168,8 @@ function weekSaturday() { return weekSaturdayForDate(selectedDateObj()); }
 function weekNumForDate(d) {
   if (d < SEASON_START) return 0;
   if (d > SEASON_END)   return 13;
-  return Math.ceil((d - SEASON_START) / (7 * 24 * 60 * 60 * 1000));
+  const diff = d - SEASON_START;
+  return Math.floor(diff / (7 * 24 * 60 * 60 * 1000)) + 1;
 }
 function currentWeekNum()  { return weekNumForDate(new Date()); }
 function selectedWeekNum() { return weekNumForDate(selectedDateObj()); }
