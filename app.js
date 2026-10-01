@@ -356,8 +356,12 @@ function renderToday() {
   if (wk > 0 && wk <= 12) {
     const wkEnd = weekEndDate(wk);
     html += `<p style="font-size:12px;color:var(--text-muted);margin:-4px 0 10px;">Week ${wk} · ${formatDate(weekStartDate(wk))} – ${formatDate(wkEnd)}</p>`;
+  } else if (wk === 0 && currentWeekNum() === 0) {
+    html += `<div class="banner banner-yellow">Pre-season — Cycle 2 begins Saturday, Oct 3. You can select Oct 3 or later to pre-fill data.</div>`;
+    return html;
   } else if (wk === 0) {
-    html += `<div class="banner banner-yellow">Pre-season — Cycle 2 begins Saturday, Oct 3.</div>`;
+    // selectedDate is before season start; nudge forward
+    html += `<div class="banner banner-yellow">Selected date is before Cycle 2 starts (Oct 3). Use → to move forward.</div>`;
     return html;
   }
 
