@@ -339,6 +339,24 @@ textarea:focus, input:focus, select:focus {
 }
 .notif-bar button { flex-shrink: 0; }
 
+/* Collapse toggle */
+.collapse-toggle {
+  font-size: 12px;
+  color: var(--green);
+  cursor: pointer;
+  font-weight: 600;
+  padding: 6px 0;
+  display: block;
+  user-select: none;
+}
+
+/* Tier hint label */
+.tier-hint {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
 @media (prefers-color-scheme: dark) {
   /* intentionally light-only for readability */
 }
